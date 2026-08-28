@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sub-Admin Panel - SMS Bot</title>
+    <title>Dhrubo Sub-Admin Panel - SMS Bot</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,13 +21,13 @@
                     <i class="fa-solid fa-shield-halved text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-white tracking-wide">Sub-Admin Console</h1>
+                    <h1 class="text-xl font-bold text-white tracking-wide">Dhrubo Sub-Admin Console</h1>
                     <p class="text-xs text-slate-400">Admin: <span class="text-indigo-400 font-semibold">@argentina1918</span></p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Firebase Sync
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Master Stock Synced
                 </span>
             </div>
         </div>
@@ -53,7 +53,7 @@
                 <i class="fa-solid fa-key absolute right-4 bottom-4 text-slate-800 text-3xl"></i>
             </div>
             <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
-                <p class="text-xs font-medium text-slate-400 uppercase">সার্ভার এভেইলেবল স্টক</p>
+                <p class="text-xs font-medium text-slate-400 uppercase">মাস্টার এভেইলেবল স্টক</p>
                 <h3 id="stat-available-numbers" class="text-2xl md:text-3xl font-bold text-amber-400 mt-1">0</h3>
                 <i class="fa-solid fa-sim-card absolute right-4 bottom-4 text-slate-800 text-3xl"></i>
             </div>
@@ -116,17 +116,17 @@
             <div id="configured-rates-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5"></div>
         </div>
 
-        <!-- 2. WITHDRAWALS & USER MANAGER & BROADCAST -->
+        <!-- 2. MASTER LIVE STOCK VIEW & WITHDRAWALS -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <!-- Broadcast Messenger -->
+            <!-- Broadcast Messenger & Balance Editor -->
             <div class="space-y-6 lg:col-span-1">
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                     <h2 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
                         <i class="fa-solid fa-bullhorn text-amber-500"></i> আপনার ইউজারদের ব্রডকাস্ট নোটিশ
                     </h2>
                     <div class="space-y-3">
-                        <textarea id="broadcast-msg" rows="4" placeholder="আপনার বটের ইউজারদের নোটিশ পাঠান..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200"></textarea>
+                        <textarea id="broadcast-msg" rows="3" placeholder="আপনার বটের ইউজারদের নোটিশ পাঠান..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200"></textarea>
                         <button onclick="sendGlobalBroadcast()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-sm">
                             <i class="fa-solid fa-paper-plane"></i> ব্রডকাস্ট পাঠিয়ে দিন
                         </button>
@@ -159,8 +159,25 @@
                 </div>
             </div>
 
-            <!-- Right: Pending Withdrawals -->
+            <!-- Right: Master Live Stock Display & Pending Withdrawals -->
             <div class="space-y-6 lg:col-span-2">
+                
+                <!-- Master Live Stock Tree -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-amber-400"></i> মাস্টার সার্ভারের লাইভ কান্ট্রি স্টক
+                        </h2>
+                        <button onclick="fetchMasterServicesAndStock()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded-lg border border-slate-700 transition">
+                            🔄 রিফ্রেশ স্টক
+                        </button>
+                    </div>
+                    <div id="master-stock-container" class="space-y-3">
+                        <div class="p-6 text-center text-slate-500 text-sm">মাস্টার স্টক লোড হচ্ছে...</div>
+                    </div>
+                </div>
+
+                <!-- Pending Withdrawals -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-bold text-white flex items-center gap-2">
@@ -189,6 +206,7 @@
                         </table>
                     </div>
                 </div>
+
             </div>
 
         </div>
@@ -197,7 +215,7 @@
 
     <!-- JavaScript Logic with Sub-Admin's Firebase + Master Sync -->
     <script>
-        // ================= SUB-ADMIN PRIVATE FIREBASE CONFIG =================
+        // ================= DHRUBO'S PRIVATE FIREBASE CONFIG =================
         const subAdminFirebaseConfig = {
             apiKey: "AIzaSyA-oAb2gikRpc9u8HF25fkel6Sil1Ii87A",
             authDomain: "drubo-hadi-sms.firebaseapp.com",
@@ -220,8 +238,9 @@
         let masterServices = {};
         let masterServiceCountries = {};
         let currentRates = {};
+        let masterNumbers = {};
 
-        // 1. Live Stats Listener (from Sub-Admin's private Firebase)
+        // 1. Live Stats Listener (from Dhrubo's private Firebase)
         subDb.ref("users").on("value", (snapshot) => {
             const users = snapshot.val() || {};
             let totalUsers = 0;
@@ -239,7 +258,7 @@
             document.getElementById("stat-total-otp").innerText = totalOtps;
         });
 
-        // 2. Minimum Withdrawal Settings Listener (Sub-Admin's private Firebase)
+        // 2. Minimum Withdrawal Settings Listener (Dhrubo's private Firebase)
         subDb.ref("settings/min_withdraw").on("value", (snapshot) => {
             const val = snapshot.val() !== null ? parseFloat(snapshot.val()) : 50.0;
             document.getElementById("current-min-wd-display").innerText = val.toFixed(2) + " BDT";
@@ -256,8 +275,8 @@
             alert(`✅ সর্বনিম্ন উইথড্র লিমিট ${val.toFixed(2)} BDT সেট করা হয়েছে!`);
         }
 
-        // 3. Read Services and Countries directly from Master Admin (Read-Only)
-        async function fetchMasterServicesAndCountries() {
+        // 3. Sync Services, Countries & Numbers Live from Master Admin
+        async function fetchMasterServicesAndStock() {
             try {
                 const sRes = await fetch(`${MASTER_FIREBASE_URL}/services.json`);
                 masterServices = await sRes.json() || {};
@@ -265,27 +284,26 @@
                 const cRes = await fetch(`${MASTER_FIREBASE_URL}/service_countries.json`);
                 masterServiceCountries = await cRes.json() || {};
 
-                // Fetch master live stock count
-                const stockRes = await fetch(`${MASTER_FIREBASE_URL}/live_stock_counts.json`);
-                const stockData = await stockRes.json() || {};
-                let totalStock = 0;
-                for (let s in stockData) {
-                    for (let c in stockData[s]) {
-                        totalStock += parseInt(stockData[s][c]) || 0;
-                    }
+                // Fetch numbers from master (checks both premium_numbers and master_numbers)
+                let numRes = await fetch(`${MASTER_FIREBASE_URL}/premium_numbers.json`);
+                masterNumbers = await numRes.json() || {};
+                if (Object.keys(masterNumbers).length === 0) {
+                    numRes = await fetch(`${MASTER_FIREBASE_URL}/master_numbers.json`);
+                    masterNumbers = await numRes.json() || {};
                 }
-                document.getElementById("stat-available-numbers").innerText = totalStock;
 
                 populateRateServiceDropdown();
+                renderMasterStockTree();
             } catch (err) {
                 console.error("Master Sync Error:", err);
             }
         }
-        fetchMasterServicesAndCountries();
-        setInterval(fetchMasterServicesAndCountries, 10000);
+        fetchMasterServicesAndStock();
+        setInterval(fetchMasterServicesAndStock, 6000); // Auto sync every 6s
 
         function populateRateServiceDropdown() {
             const selectRateService = document.getElementById("rate-service");
+            const currentVal = selectRateService.value;
             selectRateService.innerHTML = "";
 
             const sKeys = Object.keys(masterServices);
@@ -301,6 +319,10 @@
                 opt.innerText = `${s.icon || '🌐'} ${s.name}`;
                 selectRateService.appendChild(opt);
             });
+
+            if (currentVal && masterServices[currentVal.toLowerCase()]) {
+                selectRateService.value = currentVal;
+            }
 
             onRateServiceChange();
         }
@@ -330,10 +352,11 @@
             onRateCountryChange();
         }
 
-        // 4. Sub-Admin Custom Rates Listener & Handlers (Sub-Admin's private Firebase)
+        // 4. Sub-Admin Custom Rates Listener & Handlers (Dhrubo's private Firebase)
         subDb.ref("pricing").on("value", (snapshot) => {
             currentRates = snapshot.val() || {};
             renderConfiguredRates();
+            renderMasterStockTree();
             onRateCountryChange();
         });
 
@@ -430,7 +453,84 @@
             }
         }
 
-        // 5. Withdrawals Management (Sub-Admin's Bot Users)
+        // 5. Render Master Live Stock Tree in Sub-Admin Panel
+        function renderMasterStockTree() {
+            const container = document.getElementById("master-stock-container");
+            container.innerHTML = "";
+
+            let totalAvail = 0;
+            const tree = {};
+
+            for (let id in masterNumbers) {
+                const item = masterNumbers[id];
+                if (item.status === "available") {
+                    totalAvail++;
+                    const sName = item.service || "General";
+                    const cName = item.country || "Global";
+
+                    if (!tree[sName]) tree[sName] = {};
+                    if (!tree[sName][cName]) tree[sName][cName] = 0;
+                    tree[sName][cName]++;
+                }
+            }
+
+            document.getElementById("stat-available-numbers").innerText = totalAvail;
+
+            const srvNames = Object.keys(tree);
+            if (srvNames.length === 0 || totalAvail === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-500 text-sm">মাস্টার ওনার এখনো কোনো নাম্বার স্টক আপলোড করেননি।</div>`;
+                return;
+            }
+
+            srvNames.forEach(sName => {
+                const card = document.createElement("div");
+                card.className = "bg-slate-950 border border-slate-800 rounded-xl p-4";
+
+                let countriesHtml = "";
+                for (let cName in tree[sName]) {
+                    const count = tree[sName][cName];
+                    const rate = (currentRates[sName] && currentRates[sName][cName] !== undefined) 
+                        ? parseFloat(currentRates[sName][cName]).toFixed(2) + " BDT"
+                        : "0.35 BDT (ডিফল্ট)";
+
+                    let flag = "🌍";
+                    if (masterServiceCountries[sName]) {
+                        for (let k in masterServiceCountries[sName]) {
+                            if (masterServiceCountries[sName][k].name.toLowerCase() === cName.toLowerCase()) {
+                                flag = masterServiceCountries[sName][k].flag || "🌍";
+                                break;
+                            }
+                        }
+                    }
+
+                    countriesHtml += `
+                        <div class="flex items-center justify-between bg-slate-900 border border-slate-800/80 px-3 py-2 rounded-lg text-xs">
+                            <div class="flex flex-col">
+                                <span class="font-medium text-slate-200 flex items-center gap-1.5">
+                                    ${flag} <span class="font-bold">${cName}</span> 
+                                    <span class="text-amber-400 font-mono bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">(${count} টি স্টক)</span>
+                                </span>
+                                <span class="text-[10px] text-cyan-400 mt-0.5">💰 আপনার রেট: ${rate}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                        <span class="font-bold text-sm text-blue-400 flex items-center gap-1.5">
+                            📱 ${sName}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        ${countriesHtml}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 6. Withdrawals Management (Dhrubo's Bot Users)
         subDb.ref("withdrawals").on("value", (snapshot) => {
             const withdrawals = snapshot.val() || {};
             const tbody = document.getElementById("withdrawals-table-body");
@@ -486,7 +586,7 @@
             alert("উইথড্র বাতিল এবং রিফান্ড সফল হয়েছে!");
         }
 
-        // 6. Update User Balance & OTP by Chat ID
+        // 7. Update User Balance & OTP by Chat ID
         async function updateUserData() {
             const userId = document.getElementById("edit-user-id").value.trim();
             const newBal = document.getElementById("edit-user-balance").value.trim();
@@ -513,7 +613,7 @@
             document.getElementById("edit-user-otps").value = "";
         }
 
-        // 7. Global Broadcast to Sub-Admin's Bot Users
+        // 8. Global Broadcast to Dhrubo's Bot Users
         async function sendGlobalBroadcast() {
             const msg = document.getElementById("broadcast-msg").value.trim();
             if (!msg) {
