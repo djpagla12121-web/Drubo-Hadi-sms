@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sub-Admin Panel - SMS Bot</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase App & Database SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+
+    <!-- Top Navbar -->
+    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50 p-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white tracking-wide">Sub-Admin Console</h1>
+                    <p class="text-xs text-slate-400">Admin: <span class="text-indigo-400 font-semibold">@argentina1918</span></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Firebase Sync
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                <p class="text-xs font-medium text-slate-400 uppercase">আমার বটের ইউজার</p>
+                <h3 id="stat-total-users" class="text-2xl md:text-3xl font-bold text-white mt-1">0</h3>
+                <i class="fa-solid fa-users absolute right-4 bottom-4 text-slate-800 text-3xl"></i>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                <p class="text-xs font-medium text-slate-400 uppercase">মোট ইউজার ব্যালেন্স</p>
+                <h3 id="stat-total-balance" class="text-2xl md:text-3xl font-bold text-emerald-400 mt-1">0.00 BDT</h3>
+                <i class="fa-solid fa-wallet absolute right-4 bottom-4 text-slate-800 text-3xl"></i>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                <p class="text-xs font-medium text-slate-400 uppercase">আমার বটের মোট OTP</p>
+                <h3 id="stat-total-otp" class="text-2xl md:text-3xl font-bold text-blue-400 mt-1">0</h3>
+                <i class="fa-solid fa-key absolute right-4 bottom-4 text-slate-800 text-3xl"></i>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden">
+                <p class="text-xs font-medium text-slate-400 uppercase">সার্ভার এভেইলেবল স্টক</p>
+                <h3 id="stat-available-numbers" class="text-2xl md:text-3xl font-bold text-amber-400 mt-1">0</h3>
+                <i class="fa-solid fa-sim-card absolute right-4 bottom-4 text-slate-800 text-3xl"></i>
+            </div>
+        </div>
+
+        <!-- 1. MIN PAYOUT & CUSTOM OTP PRICING -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Min Withdrawal Setting -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 lg:col-span-1">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
+                    <i class="fa-solid fa-hand-holding-dollar text-emerald-400"></i> সর্বনিম্ন উইথড্র লিমিট (Payout)
+                </h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">সর্বনিম্ন উইথড্র এমাউন্ট (BDT)</label>
+                        <input type="number" step="0.01" id="setting-min-withdraw" placeholder="Ex: 50.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200">
+                    </div>
+                    <button onclick="saveMinWithdraw()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-xl transition text-sm flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> লিমিট সেভ করুন
+                    </button>
+                    <p class="text-[11px] text-slate-500">বর্তমানে সেট করা: <span id="current-min-wd-display" class="text-emerald-400 font-bold">50.00 BDT</span></p>
+                </div>
+            </div>
+
+            <!-- Set Per-Country Custom OTP Rate -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 lg:col-span-2">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
+                    <i class="fa-solid fa-tags text-cyan-400"></i> আপনার ইউজারদের জন্য OTP রেট সেট করুন
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">সার্ভিস বেছে নিন</label>
+                        <select id="rate-service" onchange="onRateServiceChange()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200"></select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">কান্ট্রি নির্বাচন করুন</label>
+                        <select id="rate-country" onchange="onRateCountryChange()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200"></select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">OTP রেট / প্রাইস (BDT)</label>
+                        <input type="number" step="0.01" id="rate-price" placeholder="Ex: 0.10, 0.50, 1.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200">
+                    </div>
+                </div>
+                <button onclick="saveCountryRate()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-2.5 rounded-xl transition text-sm flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-circle-check"></i> রেট সেভ / আপডেট করুন
+                </button>
+            </div>
+
+        </div>
+
+        <!-- View Configured Rates List -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-cyan-400"></i> আপনার সেট করা কান্ট্রি ওটিপি রেট তালিকা
+                </h2>
+                <span id="total-rates-count" class="bg-cyan-500/10 text-cyan-400 text-xs px-2.5 py-1 rounded-full border border-cyan-500/20">0 Rates</span>
+            </div>
+            <div id="configured-rates-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5"></div>
+        </div>
+
+        <!-- 2. WITHDRAWALS & USER MANAGER & BROADCAST -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Broadcast Messenger -->
+            <div class="space-y-6 lg:col-span-1">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h2 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-bullhorn text-amber-500"></i> আপনার ইউজারদের ব্রডকাস্ট নোটিশ
+                    </h2>
+                    <div class="space-y-3">
+                        <textarea id="broadcast-msg" rows="4" placeholder="আপনার বটের ইউজারদের নোটিশ পাঠান..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200"></textarea>
+                        <button onclick="sendGlobalBroadcast()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-paper-plane"></i> ব্রডকাস্ট পাঠিয়ে দিন
+                        </button>
+                    </div>
+                </div>
+
+                <!-- User Balance & OTP Editor -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-user-pen text-indigo-500"></i> ইউজার ব্যালেন্স ও ওটিপি এডিটর
+                    </h2>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">টেলিগ্রাম Chat ID</label>
+                            <input type="number" id="edit-user-id" placeholder="Ex: 8729990741" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">নতুন ব্যালেন্স (BDT)</label>
+                            <input type="number" step="0.01" id="edit-user-balance" placeholder="Ex: 100.00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 block mb-1">নতুন ওটিপি সংখ্যা</label>
+                            <input type="number" id="edit-user-otps" placeholder="Ex: 10" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200">
+                        </div>
+                        <button onclick="updateUserData()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-xl transition text-sm">
+                            <i class="fa-solid fa-check"></i> ব্যালেন্স আপডেট করুন
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Pending Withdrawals -->
+            <div class="space-y-6 lg:col-span-2">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-money-bill-transfer text-emerald-500"></i> উইথড্র রিকোয়েস্ট সমূহ (আমার বট)
+                        </h2>
+                        <span id="pending-wd-badge" class="bg-emerald-500/10 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/20">0 Pending</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="text-xs uppercase bg-slate-950 text-slate-400 border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">User Chat ID</th>
+                                    <th class="p-3">এমাউন্ট</th>
+                                    <th class="p-3">মেথড</th>
+                                    <th class="p-3">অ্যাকাউন্ট নং</th>
+                                    <th class="p-3">সময়</th>
+                                    <th class="p-3 text-right">একশন</th>
+                                </tr>
+                            </thead>
+                            <tbody id="withdrawals-table-body" class="divide-y divide-slate-800">
+                                <tr>
+                                    <td colspan="6" class="p-4 text-center text-slate-500">কোন পেন্ডিং উইথড্র নেই</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- JavaScript Logic with Sub-Admin's Firebase + Master Sync -->
+    <script>
+        // ================= SUB-ADMIN PRIVATE FIREBASE CONFIG =================
+        const subAdminFirebaseConfig = {
+            apiKey: "AIzaSyA-oAb2gikRpc9u8HF25fkel6Sil1Ii87A",
+            authDomain: "drubo-hadi-sms.firebaseapp.com",
+            databaseURL: "https://drubo-hadi-sms-default-rtdb.firebaseio.com",
+            projectId: "drubo-hadi-sms",
+            storageBucket: "drubo-hadi-sms.firebasestorage.app",
+            messagingSenderId: "762613476597",
+            appId: "1:762613476597:web:e75de529d358425041e9bc",
+            measurementId: "G-NNP29YZXSH"
+        };
+
+        const MASTER_FIREBASE_URL = "https://hadi-sms-default-rtdb.firebaseio.com";
+        const BOT_TOKEN = "8608157825:AAGCrYjtdY3PcxeuuCiSBtgjhTDN82Q_nHs";
+        const SUB_ADMIN_USERNAME = "argentina1918";
+        // =====================================================================
+
+        firebase.initializeApp(subAdminFirebaseConfig);
+        const subDb = firebase.database();
+
+        let masterServices = {};
+        let masterServiceCountries = {};
+        let currentRates = {};
+
+        // 1. Live Stats Listener (from Sub-Admin's private Firebase)
+        subDb.ref("users").on("value", (snapshot) => {
+            const users = snapshot.val() || {};
+            let totalUsers = 0;
+            let totalBalance = 0;
+            let totalOtps = 0;
+
+            for (let uid in users) {
+                totalUsers++;
+                totalBalance += parseFloat(users[uid].balance || 0);
+                totalOtps += parseInt(users[uid].total_otp || 0);
+            }
+
+            document.getElementById("stat-total-users").innerText = totalUsers;
+            document.getElementById("stat-total-balance").innerText = totalBalance.toFixed(2) + " BDT";
+            document.getElementById("stat-total-otp").innerText = totalOtps;
+        });
+
+        // 2. Minimum Withdrawal Settings Listener (Sub-Admin's private Firebase)
+        subDb.ref("settings/min_withdraw").on("value", (snapshot) => {
+            const val = snapshot.val() !== null ? parseFloat(snapshot.val()) : 50.0;
+            document.getElementById("current-min-wd-display").innerText = val.toFixed(2) + " BDT";
+            document.getElementById("setting-min-withdraw").value = val;
+        });
+
+        async function saveMinWithdraw() {
+            const val = parseFloat(document.getElementById("setting-min-withdraw").value);
+            if (isNaN(val) || val < 0) {
+                alert("সঠিক পরিমাণ দিন!");
+                return;
+            }
+            await subDb.ref("settings/min_withdraw").set(val);
+            alert(`✅ সর্বনিম্ন উইথড্র লিমিট ${val.toFixed(2)} BDT সেট করা হয়েছে!`);
+        }
+
+        // 3. Read Services and Countries directly from Master Admin (Read-Only)
+        async function fetchMasterServicesAndCountries() {
+            try {
+                const sRes = await fetch(`${MASTER_FIREBASE_URL}/services.json`);
+                masterServices = await sRes.json() || {};
+                
+                const cRes = await fetch(`${MASTER_FIREBASE_URL}/service_countries.json`);
+                masterServiceCountries = await cRes.json() || {};
+
+                // Fetch master live stock count
+                const stockRes = await fetch(`${MASTER_FIREBASE_URL}/live_stock_counts.json`);
+                const stockData = await stockRes.json() || {};
+                let totalStock = 0;
+                for (let s in stockData) {
+                    for (let c in stockData[s]) {
+                        totalStock += parseInt(stockData[s][c]) || 0;
+                    }
+                }
+                document.getElementById("stat-available-numbers").innerText = totalStock;
+
+                populateRateServiceDropdown();
+            } catch (err) {
+                console.error("Master Sync Error:", err);
+            }
+        }
+        fetchMasterServicesAndCountries();
+        setInterval(fetchMasterServicesAndCountries, 10000);
+
+        function populateRateServiceDropdown() {
+            const selectRateService = document.getElementById("rate-service");
+            selectRateService.innerHTML = "";
+
+            const sKeys = Object.keys(masterServices);
+            if (sKeys.length === 0) {
+                selectRateService.innerHTML = `<option value="">মাস্টার অ্যাডমিন এখনো সার্ভিস তৈরি করেনি</option>`;
+                return;
+            }
+
+            sKeys.forEach(k => {
+                const s = masterServices[k];
+                const opt = document.createElement("option");
+                opt.value = s.name;
+                opt.innerText = `${s.icon || '🌐'} ${s.name}`;
+                selectRateService.appendChild(opt);
+            });
+
+            onRateServiceChange();
+        }
+
+        function onRateServiceChange() {
+            const sName = document.getElementById("rate-service").value;
+            const rateCountrySelect = document.getElementById("rate-country");
+            rateCountrySelect.innerHTML = "";
+
+            const countriesObj = masterServiceCountries[sName] || {};
+            const cKeys = Object.keys(countriesObj);
+
+            if (cKeys.length === 0) {
+                rateCountrySelect.innerHTML = `<option value="">এই সার্ভিসে কান্ট্রি নেই</option>`;
+                document.getElementById("rate-price").value = "";
+                return;
+            }
+
+            cKeys.forEach(key => {
+                const c = countriesObj[key];
+                const opt = document.createElement("option");
+                opt.value = c.name;
+                opt.innerText = `${c.flag || '🌍'} ${c.name}`;
+                rateCountrySelect.appendChild(opt);
+            });
+
+            onRateCountryChange();
+        }
+
+        // 4. Sub-Admin Custom Rates Listener & Handlers (Sub-Admin's private Firebase)
+        subDb.ref("pricing").on("value", (snapshot) => {
+            currentRates = snapshot.val() || {};
+            renderConfiguredRates();
+            onRateCountryChange();
+        });
+
+        function onRateCountryChange() {
+            const sName = document.getElementById("rate-service").value;
+            const cName = document.getElementById("rate-country").value;
+            const priceInput = document.getElementById("rate-price");
+
+            if (currentRates[sName] && currentRates[sName][cName] !== undefined) {
+                priceInput.value = currentRates[sName][cName];
+            } else {
+                priceInput.value = "";
+            }
+        }
+
+        async function saveCountryRate() {
+            const sName = document.getElementById("rate-service").value;
+            const cName = document.getElementById("rate-country").value;
+            const priceVal = document.getElementById("rate-price").value.trim();
+
+            if (!sName || !cName || priceVal === "") {
+                alert("সার্ভিস, কান্ট্রি এবং ওটিপি রেট দিন!");
+                return;
+            }
+
+            const price = parseFloat(priceVal);
+            if (isNaN(price) || price < 0) {
+                alert("সঠিক রেট দিন!");
+                return;
+            }
+
+            await subDb.ref(`pricing/${sName}/${cName}`).set(price);
+            alert(`✅ ${sName} -> ${cName} এর OTP রেট ${price.toFixed(2)} BDT সেট হয়েছে!`);
+        }
+
+        async function deleteRate(sName, cName) {
+            if (!confirm(`আপনি কি "${sName}" এর "${cName}" রেট ডিলিট করতে চান?`)) return;
+            await subDb.ref(`pricing/${sName}/${cName}`).remove();
+        }
+
+        function quickEditRate(sName, cName, price) {
+            document.getElementById("rate-service").value = sName;
+            onRateServiceChange();
+            document.getElementById("rate-country").value = cName;
+            document.getElementById("rate-price").value = price;
+            window.scrollTo({ top: 150, behavior: 'smooth' });
+        }
+
+        function renderConfiguredRates() {
+            const container = document.getElementById("configured-rates-container");
+            container.innerHTML = "";
+
+            let totalCount = 0;
+
+            for (let sName in currentRates) {
+                for (let cName in currentRates[sName]) {
+                    totalCount++;
+                    const price = parseFloat(currentRates[sName][cName]).toFixed(2);
+                    
+                    let flag = "🌍";
+                    if (masterServiceCountries[sName]) {
+                        for (let k in masterServiceCountries[sName]) {
+                            if (masterServiceCountries[sName][k].name.toLowerCase() === cName.toLowerCase()) {
+                                flag = masterServiceCountries[sName][k].flag || "🌍";
+                                break;
+                            }
+                        }
+                    }
+
+                    const card = document.createElement("div");
+                    card.className = "bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between";
+                    card.innerHTML = `
+                        <div class="truncate">
+                            <p class="text-[11px] text-blue-400 font-bold truncate">${sName}</p>
+                            <p class="text-xs text-slate-200 font-medium">${flag} ${cName}</p>
+                            <p class="text-xs font-bold text-cyan-400 font-mono">৳${price}</p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <button onclick="quickEditRate('${sName}', '${cName}', ${price})" class="text-cyan-400 hover:text-cyan-300 p-1 hover:bg-slate-800 rounded transition text-xs" title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteRate('${sName}', '${cName}')" class="text-rose-400 hover:text-rose-300 p-1 hover:bg-slate-800 rounded transition text-xs" title="Delete">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                }
+            }
+
+            document.getElementById("total-rates-count").innerText = `${totalCount} Rates`;
+            if (totalCount === 0) {
+                container.innerHTML = `<div class="col-span-full p-4 text-center text-slate-500 text-xs">কোন কাস্টম রেট সেট করা নেই।</div>`;
+            }
+        }
+
+        // 5. Withdrawals Management (Sub-Admin's Bot Users)
+        subDb.ref("withdrawals").on("value", (snapshot) => {
+            const withdrawals = snapshot.val() || {};
+            const tbody = document.getElementById("withdrawals-table-body");
+            tbody.innerHTML = "";
+
+            let pendingCount = 0;
+
+            for (let reqId in withdrawals) {
+                const item = withdrawals[reqId];
+                if (item.status === "pending") {
+                    pendingCount++;
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-950/50 transition";
+                    tr.innerHTML = `
+                        <td class="p-3 font-mono font-bold text-blue-400">${item.user_id}</td>
+                        <td class="p-3 font-bold text-emerald-400">${parseFloat(item.amount).toFixed(2)} BDT</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded bg-slate-800 text-xs">${item.method}</span></td>
+                        <td class="p-3 font-mono">${item.account}</td>
+                        <td class="p-3 text-xs text-slate-400">${item.time || 'N/A'}</td>
+                        <td class="p-3 text-right space-x-1">
+                            <button onclick="approveWithdraw('${reqId}', '${item.user_id}', ${item.amount}, '${item.method}', '${item.account}')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 py-1.5 rounded-lg transition font-medium">Approve</button>
+                            <button onclick="rejectWithdraw('${reqId}', '${item.user_id}', ${item.amount})" class="bg-rose-600 hover:bg-rose-500 text-white text-xs px-2.5 py-1.5 rounded-lg transition font-medium">Reject</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            }
+
+            document.getElementById("pending-wd-badge").innerText = `${pendingCount} Pending`;
+            if (pendingCount === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">কোন পেন্ডিং উইথড্র নেই</td></tr>`;
+            }
+        });
+
+        async function approveWithdraw(reqId, userId, amount, method, account) {
+            if (!confirm(`User ${userId}-এর ${amount} BDT উইথড্র Approve করতে চান?`)) return;
+            await subDb.ref(`withdrawals/${reqId}`).update({ status: "approved" });
+            const msg = `🎉 *Withdrawal Approved!*\n━━━━━━━━━━━━━━━━━━━━━\n💰 *Amount:* \`${amount.toFixed(2)} BDT\`\n💳 *Method:* \`${method}\`\n📱 *Account:* \`${account}\`\n━━━━━━━━━━━━━━━━━━━━━\nটাকা আপনার অ্যাকাউন্টে পাঠিয়ে দেওয়া হয়েছে।`;
+            sendTelegramMessage(userId, msg);
+            alert("উইথড্র রিকোয়েস্ট Approved!");
+        }
+
+        async function rejectWithdraw(reqId, userId, amount) {
+            if (!confirm(`User ${userId}-এর উইথড্র বাতিল এবং ব্যালেন্স রিফান্ড করতে চান?`)) return;
+            const userRef = subDb.ref(`users/${userId}`);
+            userRef.transaction((user) => {
+                if (user) user.balance = (parseFloat(user.balance) || 0) + parseFloat(amount);
+                return user;
+            });
+            await subDb.ref(`withdrawals/${reqId}`).update({ status: "rejected" });
+            const msg = `❌ *Withdrawal Request Declined!*\n━━━━━━━━━━━━━━━━━━━━━\n💰 *Refunded:* \`${amount.toFixed(2)} BDT\` আপনার ব্যালেন্সে ফেরত দেওয়া হয়েছে।`;
+            sendTelegramMessage(userId, msg);
+            alert("উইথড্র বাতিল এবং রিফান্ড সফল হয়েছে!");
+        }
+
+        // 6. Update User Balance & OTP by Chat ID
+        async function updateUserData() {
+            const userId = document.getElementById("edit-user-id").value.trim();
+            const newBal = document.getElementById("edit-user-balance").value.trim();
+            const newOtps = document.getElementById("edit-user-otps").value.trim();
+
+            if (!userId) {
+                alert("ইউজারের Chat ID দিন!");
+                return;
+            }
+
+            const updates = {};
+            if (newBal !== "") updates.balance = parseFloat(newBal);
+            if (newOtps !== "") updates.total_otp = parseInt(newOtps);
+
+            if (Object.keys(updates).length === 0) {
+                alert("ব্যালেন্স অথবা ওটিপি সংখ্যা লিখুন!");
+                return;
+            }
+
+            await subDb.ref(`users/${userId}`).update(updates);
+            alert(`✅ User Chat ID ${userId} ডাটা আপডেট হয়েছে!`);
+            document.getElementById("edit-user-id").value = "";
+            document.getElementById("edit-user-balance").value = "";
+            document.getElementById("edit-user-otps").value = "";
+        }
+
+        // 7. Global Broadcast to Sub-Admin's Bot Users
+        async function sendGlobalBroadcast() {
+            const msg = document.getElementById("broadcast-msg").value.trim();
+            if (!msg) {
+                alert("মেসেজ লিখুন!");
+                return;
+            }
+            if (!confirm("আপনি কি আপনার বটের সব ইউজারকে এই মেসেজটি পাঠাতে চান?")) return;
+
+            const snap = await subDb.ref("users").once("value");
+            const users = snap.val() || {};
+            const userIds = Object.keys(users);
+
+            let sent = 0;
+            const fullMsg = `📢 *BROADCAST UPDATE*\n━━━━━━━━━━━━━━━━━━━━━\n${msg}\n━━━━━━━━━━━━━━━━━━━━━\n👨‍💻 *Admin:* @${SUB_ADMIN_USERNAME}`;
+
+            for (const uid of userIds) {
+                await sendTelegramMessage(uid, fullMsg);
+                sent++;
+            }
+
+            alert(`✅ ব্রডকাস্ট সফলভাবে ${sent} জন ইউজারের কাছে পাঠানো হয়েছে!`);
+            document.getElementById("broadcast-msg").value = "";
+        }
+
+        async function sendTelegramMessage(chatId, text) {
+            try {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: text,
+                        parse_mode: 'Markdown'
+                    })
+                });
+            } catch (err) {
+                console.error("Telegram Send Error:", err);
+            }
+        }
+    </script>
+</body>
+</html>
